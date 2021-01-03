@@ -44,8 +44,8 @@ double object_triangle_ray_intersect(struct object_intersection *inter,
     // compute the distance from the plane to (0, 0, 0)
     // (aka the fourth plane equation component)
     double D = -vec3_dot(&n, v0);
-    double t
-        = -(vec3_dot(&n, &ray->source) + D) / vec3_dot(&n, &ray->direction);
+    double t =
+        -(vec3_dot(&n, &ray->source) + D) / vec3_dot(&n, &ray->direction);
     if (t < 0)
         return INFINITY;
 

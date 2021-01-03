@@ -1,3 +1,6 @@
+#include <err.h>
+#include <libgen.h>
+
 #include "color.h"
 #include "normal_material.h"
 #include "phong_material.h"
@@ -5,9 +8,6 @@
 #include "triangle.h"
 #include "utils/alloc.h"
 #include "utils/evect.h"
-
-#include <err.h>
-#include <libgen.h>
 
 #define TINYOBJ_LOADER_C_IMPLEMENTATION
 #include "tinyobj_loader_c.h"
@@ -99,10 +99,11 @@ static void maximal(struct vec3 *mini, struct vec3 pts)
 #undef GVECT_NAME
 #undef GVECT_TYPE
 
-int load_obj(struct scene *scene, const char *filename, struct object_vect *list)
+int load_obj(struct scene *scene, const char *filename,
+             struct object_vect *list)
 {
-    struct vec3 mini = {0, 0, 0};
-    struct vec3 maxi = {0, 0, 0};
+    struct vec3 mini = { 0, 0, 0 };
+    struct vec3 maxi = { 0, 0, 0 };
     tinyobj_attrib_t attrib;
     tinyobj_shape_t *shapes = NULL;
     size_t num_shapes;
@@ -140,8 +141,8 @@ int load_obj(struct scene *scene, const char *filename, struct object_vect *list
     {
         assert(attrib.face_num_verts[face_i] == 3);
         int mat_id = attrib.material_ids[face_i];
-        struct phong_material *mat
-            = phong_material_vect_get(&conv_materials, mat_id);
+        struct phong_material *mat =
+            phong_material_vect_get(&conv_materials, mat_id);
 
         size_t face_off = face_i * 3;
         struct vec3 points[3];
@@ -165,8 +166,8 @@ int load_obj(struct scene *scene, const char *filename, struct object_vect *list
     // release the reference counter of materials
     for (size_t i = 0; i < num_materials; i++)
     {
-        struct phong_material *mat
-            = phong_material_vect_get(&conv_materials, i);
+        struct phong_material *mat =
+            phong_material_vect_get(&conv_materials, i);
         material_put(&mat->base);
     }
 
@@ -176,8 +177,8 @@ int load_obj(struct scene *scene, const char *filename, struct object_vect *list
     tinyobj_attrib_free(&attrib);
     tinyobj_shapes_free(shapes, num_shapes);
     tinyobj_materials_free(materials, num_materials);
-    printf("mini box: %f, %f, %f\n",mini.x,mini.y,mini.z);
-    printf("maxi box: %f, %f, %f\n",maxi.x,maxi.y,maxi.z);
+    printf("mini box: %f, %f, %f\n", mini.x, mini.y, mini.z);
+    printf("maxi box: %f, %f, %f\n", maxi.x, maxi.y, maxi.z);
     scene->root->coord[0] = mini;
     scene->root->coord[1] = maxi;
     return 0;

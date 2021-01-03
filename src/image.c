@@ -1,6 +1,6 @@
-#include <string.h>
-
 #include "image.h"
+
+#include <string.h>
 
 struct rgb_image *rgb_image_alloc(size_t width, size_t height)
 {

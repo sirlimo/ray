@@ -18,10 +18,10 @@ void camera_cast_ray(struct ray *ray, const struct camera *camera, double cam_x,
     // ray->source = center + offset
     ray->source = vec3_add(&camera->center, &offset);
 
-    struct vec3 vantage_point_offset
-        = vec3_mul(&camera->forward, -camera->focal_distance);
-    struct vec3 vantage_point
-        = vec3_add(&vantage_point_offset, &camera->center);
+    struct vec3 vantage_point_offset =
+        vec3_mul(&camera->forward, -camera->focal_distance);
+    struct vec3 vantage_point =
+        vec3_add(&vantage_point_offset, &camera->center);
     ray->direction = vec3_sub(&ray->source, &vantage_point);
     vec3_normalize(&ray->direction);
 }

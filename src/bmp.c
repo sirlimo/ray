@@ -1,10 +1,11 @@
 #include "bmp.h"
+
+#include <stdint.h>
+
 #include "image.h"
 #include "utils/align.h"
 #include "utils/alloc.h"
 #include "utils/static_assert.h"
-
-#include <stdint.h>
 
 enum bmp_compression
 {
@@ -81,7 +82,7 @@ int bmp_write(struct rgb_image *image, size_t pixel_density, FILE *file)
     fwrite(&header, sizeof(header), 1, file);
 
     size_t padding_size = stride - unpadded_stride;
-    char padding[4] = {0};
+    char padding[4] = { 0 };
 
     for (size_t line_i = 0; line_i < image->height; line_i++)
     {

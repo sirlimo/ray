@@ -1,4 +1,5 @@
 #include "normal_material.h"
+
 #include "image.h"
 #include "vec3.h"
 
