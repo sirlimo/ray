@@ -3,7 +3,7 @@
 #include "object.h"
 #include "utils/alloc.h"
 #include "vec3.h"
-#include "kdtree.h"
+#include "bsptree.h"
 
 #include <stdio.h>
 #include <stddef.h>
@@ -46,8 +46,6 @@ static inline struct triangle *triangle_create(struct vec3 points[3],
                         , (min(min(points[0].y, points[1].y), points[2].y))
                         , (min(min(points[0].z, points[1].z), points[2].z))};
     trian->hitbox[0] = temp2;
-    if(temp.x>2)
-      printf("hb max = %f %f %f\n",temp.x,temp.y,temp.z);
     trian->material = material_get(mat);
     return trian;
- }
+}

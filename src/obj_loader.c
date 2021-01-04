@@ -177,8 +177,6 @@ int load_obj(struct scene *scene, const char *filename,
     tinyobj_attrib_free(&attrib);
     tinyobj_shapes_free(shapes, num_shapes);
     tinyobj_materials_free(materials, num_materials);
-    printf("mini box: %f, %f, %f\n", mini.x, mini.y, mini.z);
-    printf("maxi box: %f, %f, %f\n", maxi.x, maxi.y, maxi.z);
     scene->root->coord[0] = mini;
     scene->root->coord[1] = maxi;
     return 0;

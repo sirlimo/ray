@@ -16,74 +16,6 @@
 #include "vec3.h"
 #include "color.h"
 
-
-static void build_test_scene(struct scene *scene, double aspect_ratio, struct object_vect *objs)
-{
-    // create a sample red material
-    struct phong_material *blue_material = zalloc(sizeof(*blue_material));
-    phong_material_init(blue_material);
-    blue_material->surface_color = light_from_rgb_color(32, 32, 200);
-    blue_material->diffuse_Kn = 0.2;
-    blue_material->spec_n = 10;
-    blue_material->spec_Ks = 0.2;
-    blue_material->ambient_intensity = 0.1;
-    struct phong_material *red_material = zalloc(sizeof(*red_material));
-    phong_material_init(red_material);
-    red_material->surface_color = light_from_rgb_color(191, 32, 32);
-    red_material->diffuse_Kn = 0.2;
-    red_material->spec_n = 10;
-    red_material->spec_Ks = 0.2;
-    red_material->ambient_intensity = 0.1;
-
-    // go the same with a triangle
-    // points are listed counter-clockwise
-    //     a
-    //    /|
-    //   / |
-    //  b--c
-    struct triangle *sample_triangle;
-    
-    struct vec3 points[3] = {
-        {6, 10, 1}, // a
-        {5, 10, 0}, // b
-        {6, 10, 0}, // c
-    };
-    sample_triangle
-        = triangle_create(points, &red_material->base);
-	object_vect_push(objs, &sample_triangle->base);
-    struct vec3 ppoints[3] = {
-        {6, 10, 1}, // a
-        {6, 20, 5}, // b
-        {6, 10, 0}, // c
-    };
-    sample_triangle
-        = triangle_create(ppoints, &blue_material->base);
-    object_vect_push(objs, &sample_triangle->base);
-    scene->root->coord[0] = (struct vec3){5,10,0};
-    scene->root->coord[1] = (struct vec3){6,20,5};
-    // setup the scene lighting
-    scene->light_intensity = 5;
-    scene->light_color = light_from_rgb_color(255, 255, 0); // yellow
-    scene->light_direction = (struct vec3){-1, 1, -1};
-    vec3_normalize(&scene->light_direction);
-
-    // setup the camera
-    double cam_width = 10;
-    double cam_height = cam_width / aspect_ratio;
-
-    scene->camera = (struct camera){
-        .center = {0, 0, 0},
-        .forward = {0, 1, 0},
-        .up = {0, 0, 1},
-        .width = cam_width,
-        .height = cam_height,
-        .focal_distance = focal_distance_from_fov(cam_width, 80),
-    };
-
-    // release the reference to the material
-    material_put(&red_material->base);
-}
-
 static void build_obj_scene(struct scene *scene, double aspect_ratio)
 {
     // setup the scene lighting
@@ -126,15 +58,15 @@ static struct ray image_cast_ray(const struct rgb_image *image,
     return ray;
 }
 
-static double
+    static double
 scene_intersect_ray(struct object_intersection *closest_intersection,
-                    struct scene *scene, struct ray *ray)
+        struct scene *scene, struct ray *ray)
 {
     // we will now try to find the closest object in the scene
     // intersecting this ray
     double closest_intersection_dist = INFINITY;
 
-    struct kdtree *tree = find_box(scene->root, *ray);
+    struct bsptree *tree = find_box(scene->root, *ray);
     if (!tree)
     {
         return closest_intersection_dist;
@@ -142,13 +74,12 @@ scene_intersect_ray(struct object_intersection *closest_intersection,
     else
     {
         struct object_list *list = tree->list->next;
-	
+
         while (list)
         {
             struct object *obj = list->elm;
             struct object_intersection intersection;
             // if there's no intersection between the ray and this object, skip it
-	    
             double intersection_dist = obj->intersect(&intersection, obj, ray);
             list = list->next;
             if (intersection_dist >= closest_intersection_dist)
@@ -156,22 +87,9 @@ scene_intersect_ray(struct object_intersection *closest_intersection,
 
             closest_intersection_dist = intersection_dist;
             *closest_intersection = intersection;
-	    
-	}
+
+        }
     }
-/*    for (size_t i = 0; i < object_vect_size(&scene->objects); i++)
-    {
-        struct object *obj = object_vect_get(&scene->objects, i);
-        struct object_intersection intersection;
-        // if there's no intersection between the ray and this object, skip it
-        double intersection_dist = obj->intersect(&intersection, obj, ray);
-        if (intersection_dist >= closest_intersection_dist)
-            continue;
-
-        closest_intersection_dist = intersection_dist;
-        *closest_intersection = intersection;
-    }*/
-
     return closest_intersection_dist;
 }
 
@@ -262,7 +180,7 @@ int main(int argc, char *argv[])
     struct scene scene;
     struct object_vect list;
     scene_init(&scene, &list);
-
+    
     // initialize the frame buffer (the buffer that will store the result of the
     // rendering)
     struct rgb_image *image = rgb_image_alloc(1000, 1000);
@@ -277,15 +195,15 @@ int main(int argc, char *argv[])
 
     if (load_obj(&scene, argv[1], &list))
       return 41;
-    kd_build(scene.root);
+
+    bsp_build(scene.root);
+
 
     for (size_t i = 0; i < object_vect_size(&list); i++)
     {
         struct object *obj = object_vect_get(&list, i);
-        kd_add(scene.root, obj);
+        bsp_add(scene.root, obj);
     }
-    kd_print(scene.root);
-    puts("");
     // parse options
     render_mode_f renderer = render_shaded;
     for (int i = 3; i < argc; i++)
@@ -295,13 +213,10 @@ int main(int argc, char *argv[])
         else if (strcmp(argv[i], "--distances") == 0)
             renderer = render_distances;
     }
-    puts("render start");
     // render all pixels
     for (size_t y = 0; y < image->height; y++)
         for (size_t x = 0; x < image->width; x++)
             renderer(image, &scene, x, y);
-    puts("rendered");
-
     // write the rendered image to a bmp file
     FILE *fp = fopen(argv[2], "w");
     if (fp == NULL)
@@ -309,11 +224,9 @@ int main(int argc, char *argv[])
 
     rc = bmp_write(image, ppm_from_ppi(80), fp);
     fclose(fp);
-    puts("saved");
 
     // release resources
     scene_destroy(&scene,&list);
-    puts("detroyed");
     free(image);
     return rc;
 }

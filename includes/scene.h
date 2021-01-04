@@ -2,7 +2,7 @@
 
 #include "camera.h"
 #include "object.h"
-#include "kdtree.h"
+#include "bsptree.h"
 
 #include "utils/pvect.h"
 
@@ -21,7 +21,7 @@
 struct scene
 {
     // the list of objects in the scene
-    struct kdtree *root;
+    struct bsptree *root;
 
     // a very hacky single light
     // TODO: handle multiple lights
@@ -36,10 +36,7 @@ static inline void scene_init(struct scene *scene, struct
 object_vect *list)
 {
     struct vec3 tmp[2] = {{ 0, 0, 0 }, { 0, 0, 0 }};
-    scene->root = kd_init(tmp);
-/*    scene->root->left = kdinit(tmp);
-    scene->root->left->left = kdinit(tmp);
-    scene->root->left->left->left = kdinit(tmp);*/
+    scene->root = bsp_init(tmp);
     object_vect_init(list, 42);
     return;
 }

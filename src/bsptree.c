@@ -1,12 +1,12 @@
-#include "kdtree.h"
+#include "bsptree.h"
 
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-struct kdtree *kd_init(struct vec3 *coord)
+struct bsptree *bsp_init(struct vec3 *coord)
 {
-    struct kdtree *new = malloc(sizeof(*new));
+    struct bsptree *new = malloc(sizeof(*new));
     if (!new)
         errx(1, "Malloc failed !");
     new->list = malloc(sizeof(struct object_list));
@@ -28,7 +28,7 @@ struct kdtree *kd_init(struct vec3 *coord)
     new->right = NULL;
     return new;
 }
-void kd_print(struct kdtree *tree)
+void bsp_print(struct bsptree *tree)
 {
     if (!tree)
         return;
@@ -39,18 +39,18 @@ void kd_print(struct kdtree *tree)
     }
     else
     {
-        kd_print(tree->left);
+        bsp_print(tree->left);
         printf(" ; ");
-        kd_print(tree->right);
+        bsp_print(tree->right);
     }
     printf(" }");
 }
-void kd_destroy(struct kdtree *tree)
+void bsp_destroy(struct bsptree *tree)
 {
     if (!tree)
         return;
-    kd_destroy(tree->left);
-    kd_destroy(tree->right);
+    bsp_destroy(tree->left);
+    bsp_destroy(tree->right);
     struct object_list *tmp = tree->list->next;
     while (tmp)
     {
@@ -76,7 +76,7 @@ static void swap(double *a, double *b)
     *b = temp;
 }
 
-int kd_intersec(struct ray r, struct kdtree *tree)
+int bsp_intersec(struct ray r, struct bsptree *tree)
 {
     /*    if (pose.x > tree->coord[1].x || pose.x < tree->coord[0].x)
             return 0;
@@ -123,7 +123,7 @@ int kd_intersec(struct ray r, struct kdtree *tree)
     return 1;
 }
 
-static int hitbox_collide(struct object *obj, struct kdtree *tree)
+static int hitbox_collide(struct object *obj, struct bsptree *tree)
 {
     struct vec3 *hb = obj->hitbox(obj);
     /*printf("tree coord_max: %f %f %f \n",tree->coord[1].x, tree->coord[1].y,
@@ -140,7 +140,7 @@ static int hitbox_collide(struct object *obj, struct kdtree *tree)
     return 1;
 }
 
-static void add_obj(struct kdtree *tree, struct object *obj)
+static void add_obj(struct bsptree *tree, struct object *obj)
 {
     struct object_list *new = malloc(sizeof(*new));
     new->elm = obj;
@@ -149,7 +149,7 @@ static void add_obj(struct kdtree *tree, struct object *obj)
     tree->size++;
 }
 
-void kd_add(struct kdtree *tree, struct object *obj)
+void bsp_add(struct bsptree *tree, struct object *obj)
 {
     if (!tree->left)
         add_obj(tree, obj);
@@ -157,16 +157,16 @@ void kd_add(struct kdtree *tree, struct object *obj)
     {
         if (hitbox_collide(obj, tree->left))
         {
-            kd_add(tree->left, obj);
+            bsp_add(tree->left, obj);
         }
         if (hitbox_collide(obj, tree->right))
         {
-            kd_add(tree->right, obj);
+            bsp_add(tree->right, obj);
         }
     }
 }
 
-void kd_cut(struct kdtree *tree)
+void bsp_cut(struct bsptree *tree)
 {
     if (tree->left)
         return;
@@ -184,29 +184,29 @@ void kd_cut(struct kdtree *tree)
                             (struct vec3){ tab4[0], tab4[1], tab4[2] } };
     struct vec3 right[2] = { (struct vec3){ tab3[0], tab3[1], tab3[2] },
                              (struct vec3){ tab2[0], tab2[1], tab2[2] } };
-    tree->left = kd_init(left);
-    tree->right = kd_init(right);
+    tree->left = bsp_init(left);
+    tree->right = bsp_init(right);
     int new_axe = (tree->axe + 1) % 3;
     tree->left->axe = new_axe;
     tree->right->axe = new_axe;
 }
 
-static void kd_build_rec(struct kdtree *tree, int cpt)
+static void bsp_build_rec(struct bsptree *tree, int cpt)
 {
     if (!cpt || !tree)
         return;
-    kd_cut(tree);
-    kd_build_rec(tree->left, cpt - 1);
-    kd_build_rec(tree->right, cpt - 1);
+    bsp_cut(tree);
+    bsp_build_rec(tree->left, cpt - 1);
+    bsp_build_rec(tree->right, cpt - 1);
 }
 
-void kd_build(struct kdtree *tree)
+void bsp_build(struct bsptree *tree)
 {
-    kd_build_rec(tree, 4);
+    bsp_build_rec(tree, 4);
 }
 
-static struct kdtree *kd_closest(struct kdtree *tree_left,
-                                 struct kdtree *tree_right, struct ray ray)
+static struct bsptree *bsp_closest(struct bsptree *tree_left,
+                                 struct bsptree *tree_right, struct ray ray)
 {
     struct vec3 left = vec3_sub(&tree_left->coord[0], &tree_left->coord[1]);
     left.x = left.x < 0 ? -left.x : left.x;
@@ -227,15 +227,15 @@ static struct kdtree *kd_closest(struct kdtree *tree_left,
     return (dist_left < dist_right) ? tree_left : tree_right;
 }
 
-static struct kdtree *find_box_rec(struct kdtree *tree, struct ray ray)
+static struct bsptree *find_box_rec(struct bsptree *tree, struct ray ray)
 {
     if (!tree->left)
         return tree;
-    struct kdtree *tree_left = NULL;
-    struct kdtree *tree_right = NULL;
-    if (kd_intersec(ray, tree->left))
+    struct bsptree *tree_left = NULL;
+    struct bsptree *tree_right = NULL;
+    if (bsp_intersec(ray, tree->left))
         tree_left = find_box_rec(tree->left, ray);
-    if (kd_intersec(ray, tree->right))
+    if (bsp_intersec(ray, tree->right))
         tree_right = find_box_rec(tree->right, ray);
     if (!tree_left)
     {
@@ -245,10 +245,10 @@ static struct kdtree *find_box_rec(struct kdtree *tree, struct ray ray)
     {
         return tree_left;
     }
-    return kd_closest(tree_left, tree_right, ray);
+    return bsp_closest(tree_left, tree_right, ray);
 }
 
-struct kdtree *find_box(struct kdtree *tree, struct ray ray)
+struct bsptree *find_box(struct bsptree *tree, struct ray ray)
 {
     return find_box_rec(tree, ray);
 }
